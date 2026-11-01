@@ -2,7 +2,7 @@ import { PrismaClient, Role, RoomStatus, LeaseStatus, BillingCycle, InvoiceStatu
 import bcrypt from "bcryptjs";
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "mysql://root:@localhost:3306/kamarkos_db";
+  process.env.DATABASE_URL = "mysql://u667068812_kamarkos:kamarKos2026@srv1153.hstgr.io:3306/u667068812_kamarkos";
 }
 
 const prisma = new PrismaClient({
