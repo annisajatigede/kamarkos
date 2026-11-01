@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
-// Fallback jika .env belum dibuat atau DATABASE_URL belum diset di environment
+// Fallback ke Hostinger database jika .env belum dibuat atau DATABASE_URL belum diset di Vercel Environment Variables
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "mysql://root:@localhost:3306/kamarkos_db";
+  process.env.DATABASE_URL =
+    "mysql://u667068812_kamarkos:kamarKos2026@srv1153.hstgr.io:3306/u667068812_kamarkos?connect_timeout=30&pool_timeout=30";
 }
 
 const globalForPrisma = globalThis as unknown as {

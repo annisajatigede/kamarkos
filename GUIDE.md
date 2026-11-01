@@ -69,7 +69,33 @@ Di root proyek sudah kami sediakan file dump SQL lengkap dengan tabel dan data a
 
 ---
 
-## 4. Penanganan Troubleshooting Database & `.env`
+## 4. Panduan Deploy ke Vercel & Koneksi Database Remote (Hostinger)
+
+Jika Anda mendeploy aplikasi ini ke **Vercel** dengan database MySQL remote (seperti Hostinger), ada 2 hal penting yang **wajib** dilakukan agar Vercel dapat terhubung ke database:
+
+### 1. Izinkan Akses Remote MySQL di Hostinger hPanel (SANGAT PENTING)
+Secara default, Hostinger mengaktifkan firewall yang **memblokir** semua koneksi database dari luar server Hostinger:
+1. Buka dashboard **Hostinger hPanel** (`hpanel.hostinger.com`).
+2. Masuk ke menu **Databases** -> **Remote MySQL** (Koneksi MySQL Jarak Jauh).
+3. Di formulir **Create remote connection**:
+   - **IP (IPv4 atau IPv6)**: Isi dengan `%` (simbol persen menandakan wildcard, mengizinkan koneksi dari server Vercel yang IP-nya dinamis).
+   - **Database**: Pilih `u667068812_kamarkos`.
+4. Klik tombol **Create / Buat**.
+
+### 2. Masukkan Environment Variables di Vercel Dashboard
+Vercel **TIDAK** membaca file `.env` dari repository Git saat production runtime karena alasan keamanan. Anda harus menginput variabel tersebut ke dashboard Vercel:
+1. Buka dashboard proyek Anda di [https://vercel.com](https://vercel.com).
+2. Pilih proyek **kamarkos** -> Klik tab **Settings** -> **Environment Variables**.
+3. Tambahkan 4 variabel kunci berikut (centang untuk *Production*, *Preview*, dan *Development*):
+   - `DATABASE_URL` = `mysql://u667068812_kamarkos:kamarKos2026@srv1153.hstgr.io:3306/u667068812_kamarkos?connect_timeout=30&pool_timeout=30`
+   - `NEXTAUTH_URL` = `https://kamarkos.vercel.app` *(tanpa tanda garis miring di akhir)*
+   - `NEXTAUTH_SECRET` = `kamarkos-super-secret-production-random-key-123456`
+   - `NEXT_PUBLIC_APP_URL` = `https://kamarkos.vercel.app`
+4. Buka tab **Deployments** di Vercel, klik titik tiga (`...`) pada deployment terbaru, lalu pilih **Redeploy** (centang *Clear Build Cache*).
+
+---
+
+## 5. Penanganan Troubleshooting Database & `.env`
 
 > [!NOTE]
 > **Error:** `Environment variable not found: DATABASE_URL`
