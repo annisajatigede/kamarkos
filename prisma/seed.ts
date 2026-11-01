@@ -1,7 +1,17 @@
 import { PrismaClient, Role, RoomStatus, LeaseStatus, BillingCycle, InvoiceStatus, MaintenanceCategory, MaintenancePriority, MaintenanceStatus, ExpenseCategory } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "mysql://root:@localhost:3306/kamarkos_db";
+}
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 async function main() {
   console.log("Memulai proses seeding database KamarKos...");

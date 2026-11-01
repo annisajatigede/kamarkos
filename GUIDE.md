@@ -27,27 +27,62 @@ Aplikasi telah dilengkapi dengan data seed realistis Indonesia dan tombol login 
 
 ### Prasyarat Sistem:
 1. **Node.js**: Versi 18.17+ atau 22.x
-2. **Database**: MySQL 8.0+ (Telah berjalan di Laragon port 3306)
+2. **Database**: MySQL 8.0+ (Pastikan MySQL di Laragon sudah dinyalakan / "Start All" pada port 3306)
 3. **Database Name**: `kamarkos_db`
 
-### Langkah-langkah:
-1. **Buka Direktori Proyek**:
+### Langkah Setup Database & Menjalankan Aplikasi:
+
+#### Opsi A: Menggunakan Dump SQL Siap Pakai (`kamarkos_db.sql`)
+Di root proyek sudah kami sediakan file dump SQL lengkap dengan tabel dan data awal: `kamarkos_db.sql`.
+1. Pastikan database `kamarkos_db` sudah dibuat di MySQL:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS kamarkos_db;
+   ```
+2. Import langsung via terminal Laragon atau HeidiSQL/phpMyAdmin:
    ```bash
-   cd c:\laragon\www\kamarkos
+   mysql -u root kamarkos_db < kamarkos_db.sql
+   ```
+   *(Atau buka Laragon -> Database / HeidiSQL -> File -> Load SQL File -> pilih `kamarkos_db.sql` -> Run)*
+
+#### Opsi B: Menggunakan Prisma Migration & Seed Otomatis
+1. **Migrasi schema ke database**:
+   ```bash
+   npm run db:push
+   ```
+2. **Isi data awal (Seeding 12 kamar, tipe kamar, tagihan, user demo)**:
+   ```bash
+   npm run db:seed
    ```
 
-2. **Konfigurasi Environment (`.env`)**:
-   File `.env` sudah terkonfigurasi secara otomatis:
-   ```env
-   DATABASE_URL="mysql://root:@localhost:3306/kamarkos_db"
-   NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="kamarkos-super-secret-production-random-key-123456"
-   NEXT_PUBLIC_APP_URL="http://localhost:3000"
-   MIDTRANS_SERVER_KEY="SB-Mid-server-mock-sample-key"
-   MIDTRANS_CLIENT_KEY="SB-Mid-client-mock-sample-key"
-   MIDTRANS_IS_PRODUCTION="false"
-   FONNTE_TOKEN="mock-fonnte-token-123"
-   FONNTE_DEVICE_NUMBER="628123456789"
+### Menjalankan Server:
+1. **Mode Development**:
+   ```bash
+   npm run dev
+   ```
+   Akses di browser: [http://localhost:3000](http://localhost:3000)
+
+2. **Mode Production (Optimized)**:
+   ```bash
+   npm run build
+   npm run start
+   ```
+
+---
+
+## 4. Penanganan Troubleshooting Database & `.env`
+
+> [!NOTE]
+> **Error:** `Environment variable not found: DATABASE_URL`
+>
+> Hal ini terjadi jika file `.env` belum ada saat repository di-clone dari GitHub.
+> 
+> **Solusi:**
+> 1. Sistem kode `src/lib/prisma.ts` dan `prisma/seed.ts` kini sudah dibekali **auto-fallback** cerdas ke `mysql://root:@localhost:3306/kamarkos_db`.
+> 2. File `.env` sekarang juga sudah disertakan langsung di repository GitHub dengan konfigurasi standar Laragon (user `root` tanpa password, port `3306`, database `kamarkos_db`).
+> 3. Jika diperlukan, cukup salin file `.env.example` menjadi `.env`:
+>    ```bash
+>    cp .env.example .env
+>    ```
    ```
 
 3. **Install Dependencies**:
