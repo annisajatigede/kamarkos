@@ -1,0 +1,315 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  STAFF
+  TENANT
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum LeaseStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum MaintenanceCategory {
+  PLUMBING
+  ELECTRICAL
+  FURNITURE
+  AIR_CONDITIONER
+  CLEANING
+  OTHER
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  REPORTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  UTILITY
+  MAINTENANCE
+  SALARY
+  INTERNET
+  TAX
+  SUPPLIES
+  OTHER
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  password            String
+  phone               String?
+  role                Role                 @default(TENANT)
+  avatar              String?              @db.Text
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  tenantProfile       TenantProfile?
+  leases              Lease[]
+  invoices            Invoice[]
+  maintenanceRequests MaintenanceRequest[]
+  reviews             Review[]
+  notifications       Notification[]
+
+  @@map("users")
+}
+
+model TenantProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nik                   String?
+  occupation            String?
+  institution           String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  idCardImage           String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("tenant_profiles")
+}
+
+model Property {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  address     String      @db.Text
+  city        String
+  district    String
+  description String?     @db.Text
+  rules       String?     @db.Text
+  images      String?     @db.Text // JSON string array of URLs
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  roomTypes   RoomType[]
+  rooms       Room[]
+  expenses    Expense[]
+  reviews     Review[]
+
+  @@map("properties")
+}
+
+model RoomType {
+  id          String    @id @default(cuid())
+  propertyId  String
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?   @db.Text
+  basePrice   Float
+  deposit     Float     @default(0)
+  size        String?   // e.g. "3x4 m"
+  facilities  String?   @db.Text // JSON string array of facilities
+  images      String?   @db.Text // JSON string array of URLs
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  rooms       Room[]
+
+  @@map("room_types")
+}
+
+model Room {
+  id                  String               @id @default(cuid())
+  propertyId          String
+  property            Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomTypeId          String
+  roomType            RoomType             @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  roomNumber          String
+  floor               Int                  @default(1)
+  status              RoomStatus           @default(AVAILABLE)
+  customPrice         Float?
+  notes               String?              @db.Text
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  leases              Lease[]
+  maintenanceRequests MaintenanceRequest[]
+  reviews             Review[]
+
+  @@unique([propertyId, roomNumber])
+  @@map("rooms")
+}
+
+model Lease {
+  id            String       @id @default(cuid())
+  tenantId      String
+  tenant        User         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roomId        String
+  room          Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  startDate     DateTime
+  endDate       DateTime
+  billingCycle  BillingCycle @default(MONTHLY)
+  rentAmount    Float
+  depositAmount Float        @default(0)
+  status        LeaseStatus  @default(ACTIVE)
+  notes         String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  invoices      Invoice[]
+
+  @@map("leases")
+}
+
+model Invoice {
+  id                  String               @id @default(cuid())
+  invoiceNumber       String               @unique
+  leaseId             String?
+  lease               Lease?               @relation(fields: [leaseId], references: [id], onDelete: SetNull)
+  tenantId            String
+  tenant              User                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount              Float
+  dueDate             DateTime
+  paidDate            DateTime?
+  status              InvoiceStatus        @default(UNPAID)
+  items               String?              @db.Text // JSON array of items: [{title, amount}]
+  snapToken           String?              @db.Text
+  paymentMethod       String?              // e.g. "MIDTRANS", "MANUAL_TRANSFER"
+  paymentProof        String?              @db.Text
+  adminNotes          String?              @db.Text
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  paymentTransactions PaymentTransaction[]
+
+  @@map("invoices")
+}
+
+model PaymentTransaction {
+  id                   String            @id @default(cuid())
+  invoiceId            String
+  invoice              Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  transactionNumber    String            @unique
+  gatewayTransactionId String?
+  amount               Float
+  paymentType          String?           // e.g. "bank_transfer", "gopay", "qris"
+  status               TransactionStatus @default(PENDING)
+  rawResponse          String?           @db.Text
+  createdAt            DateTime          @default(now())
+
+  @@map("payment_transactions")
+}
+
+model MaintenanceRequest {
+  id          String              @id @default(cuid())
+  tenantId    String
+  tenant      User                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roomId      String
+  room        Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  category    MaintenanceCategory @default(OTHER)
+  title       String
+  description String              @db.Text
+  priority    MaintenancePriority @default(MEDIUM)
+  status      MaintenanceStatus   @default(REPORTED)
+  photo       String?             @db.Text
+  cost        Float?              @default(0)
+  repairNotes String?             @db.Text
+  resolvedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("maintenance_requests")
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  propertyId  String
+  property    Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory @default(OTHER)
+  title       String
+  amount      Float
+  date        DateTime        @default(now())
+  receipt     String?         @db.Text
+  notes       String?         @db.Text
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("expenses")
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  propertyId  String
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomId      String?
+  room        Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  tenantId    String
+  tenant      User      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rating      Int       @default(5)
+  comment     String    @db.Text
+  isPublished Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("reviews")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String   @db.Text
+  type      String   @default("GENERAL") // BILLING, MAINTENANCE, ANNOUNCEMENT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
